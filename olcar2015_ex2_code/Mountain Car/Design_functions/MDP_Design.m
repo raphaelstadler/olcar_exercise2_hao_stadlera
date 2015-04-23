@@ -19,7 +19,7 @@ function [Task,Controller] = MDP_Design(Task,Parameters)
 %               .state_c2d_handle -- Handle to function which converts a 
 %                   set of states in continuous space to their respective 
 %                   discretized bins
-%               .action_d2c_handle -- Handle to function which convers a 
+%               .action_d2c_handle -- Handle to function which converts a 
 %                   set of discretized action space bins to their 
 %                   corresponding continuous space values
 %
@@ -28,26 +28,42 @@ function [Task,Controller] = MDP_Design(Task,Parameters)
 
 %Important: Note that the provided state_c2d function assumes that the 'X'
 %corresponding to each discretized state bin indicates the center point
-%of that bin (ie the halfway point between the extremes of position and
+%of that bin (i.e. the halfway point between the extremes of position and
 %velocity in that bin). If you discretize the state space another way, you
-%will also need to modify ths function as well.
+%will also need to modify this function as well.
 
+% Allowed range of positions x: [-1.2, +0.5]
+% Allowed range of velocity v:  [-1, +1]
+x_min = -1.2; x_max = 0.5; v_min = -1; v_max = 1;
+delta_x = (x_max - x_min)/Parameters.pos_N;
+delta_v = (v_max - v_min)/Parameters.vel_N;
 
+X = zeros(2, Parameters.pos_N * Parameters.vel_N); % [2 x (pos_N*vel_N)] matrix of all possible discretized states
+for k=1:(Parameters.pos_N-1)
+    X(1,(k-1)*Parameters.vel_N:(k)*Parameters.vel_N) = x_min + (k-1)*delta_x;
+    X(2,(k-1)*Parameters.vel_N:(k)*Parameters.vel_N) = v_min:delta_v:v_max;
+end
 
+Task.S = 1:(Parameters.pos_N * Parameters.vel_N);   % [1 x (pos_N*vel_N)] list of indices for each corresponding 
+                                                    % discretized state value
 
-%X = ... % [2 x (pos_N*vel_N)] matrix of all possible discretized states
-%Task.S = ... % [1 x (pos_N*vel_N)] list of indices for each corresponding 
-              % discretized state value
+% Allowed range of control u:   [-1, +1]
+% (Actuation via car acceleration a)
+u_min = -1; u_max = 1;
+delta_u = (u_max - u_min)/Parameters.u_N;
 
-%U = ... % [1 x u_N] array of all possible discretized actions
-%Task.A = ... % [1 x u_N] array of indices for each corresponding 
-                      % discretized action
+U = u_min:delta_u:u_max;                            % [1 x u_N] array of all possible discretized actions
 
-
+Task.A = 1:Parameters.u_N;                          % [1 x u_N] array of indices for each corresponding 
+                                                    % discretized action
+                      
 %Initialize the MDP model of the discretized system
-%Task.P_s_sp_a = ... % [length(S) x length(S) x length(A)]
-%Task.R_s_a = ... % [length(S) x length(A)]
+Task.P_s_sp_a = zeros(length(Task.S),length(Task.S),length(Task.A));    % [length(S) x length(S) x length(A)]
+Task.R_s_a    = zeros(length(Task.S),length(Task.A));                   % [length(S) x length(A)]
 
+
+% TODO: The discretization misses stochasticity (as it is described in the
+% problem description)
 
 %% Step 2: Generate the discrete state/action space MDP model 
 
@@ -56,22 +72,25 @@ for a = Task.A   % loop over the actions
     for s = Task.S  % loop over states
         
         for i = 1:Parameters.modeling_iter % loop over modeling iterations
-            
-            %p0 = ...
-            %v0 = ...
-            %action = ...
+            p0 = X(1,:);   % position
+            v0 = X(2,:);   % velocity
+            action = U;    % inputs
 
-            
             %Simulate for one time step. This function inputs and returns
             %states expressed by their physical continuous values. You may
             %want to use the included state_*2* functions provided to do
             %this conversion.
-            %[p1,v1,r,isTerminalState] = Mountain_Car_Single_Step(p0,v0,action);
+            [p1,v1,r,isTerminalState] = Mountain_Car_Single_Step(p0,v0,action);
 
-            
             %Update the model with the iteration's simulation results
-            %Task.P_s_sp_a(  ,  ,  ) = ...
-            %Task.R_s_a(  ,  ) = ...
+            Task.P_s_sp_a(p1,v1,action) = Task.P_s_sp_a(p1,v1,action) + 1;
+            Task.R_s_a(p0,action) = Task.R_s_a(p0,action) + r;
+            
+            % TODO: Verify what actually really should be done here (better
+            % understand the problem)
+            if isTerminalState
+                return
+            end
         end
     end        
 end
