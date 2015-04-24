@@ -16,62 +16,96 @@ function Controller = GPI_Design(Task,Controller,Parameters)
 %               .Policy -- Optimal control policy found
 
 %% Initialization
-%Initialize the policy
-Policy = zeros(size(Task.S,2), Task.A); %[length(Task.S) x length(Task.A)]
+%  Initialize the policy
+%  At the beginning for all statesx every action is equally likely
+Policy = ones(length(Task.S), length(Task.A)); %[length(Task.S) x length(Task.A)]
+Policy = (1/size(Policy,2))*Policy;
 
 % Initialize the value function
-V = zeros(Task.S) % [length(Task.S) x 1]
+V = zeros(length(Task.S),1); % [length(Task.S) x 1]
 
 while true
     %% Policy Evaluation (PE) (see script section 2.6)
     PE_iter = 1;
-    while PE_iter <= GPI_Params.maxIter_PE
-        delta_V = 0;       
-        v = V;
-        V = A*V + B;    % Policy update step (see script Algorithm 1)
-                        % Compare with eq 2.11 (matrix form)
-        delta_V = max(delta_V, norm(v - V));
+    while PE_iter <= Parameters.maxIter_PE
+        delta_V = zeros(size(V));
         
-        fprintf('Iteration %d of PE.\tab Maximum change in V(x): %6.4f\n', PE_iter, delta_V);
-        if delta_V < Parameters.minDelta_V
+        % Naive implementation
+        for s = Task.S
+           v = V(s);
+           
+           sum_outer = 0;
+           for a = Task.A
+                sum_P_V = Parameters.alpha * dot(Task.P_s_sp_a(s,:,a),V(:));
+                sum_outer = sum_outer + Policy(s,a) * ( Task.R_s_a(s,a) + sum_P_V );
+           end % a
+           V(s) = sum_outer;
+           
+           delta_V(s) = max(delta_V(s), norm(v - V(s)));
+        end % s
+        
+%         TODO: Replace naive implementation by matrix/vector operations
+%         Someting as follows:
+%         v = V;
+%         V = A*V + B;    % Policy update step (see script Algorithm 1)
+%                         % Compare with eq 2.11 (matrix form)
+%         delta_V = max(delta_V, norm(v - V));
+        
+        %fprintf('Iteration %i of PE.\t Maximum change in V(x): %6.4f\n', PE_iter, delta_V);
+        if max(delta_V) < Parameters.minDelta_V
             break
         end
+        
         PE_iter = PE_iter + 1;
     end    
     
     %% Policy Improvment (PI) (see script section 2.7)
     PI_iter = 1;
-    while (PI_iter <= GPI_Params.maxIter_PI) && ~policyIsStable
-        delta_Policy = 0;
+    while (PI_iter <= Parameters.maxIter_PI)
+        delta_Policy = zeros(size(Policy));
         policyIsStable = true;
-        b = Policy;
 
         % Initialize pi_x and calculate argmax_u(..)
         % Policy update rule
         argmax_term = 0;
-        for a = Task.A
-            % Integrate cost decay factor GPI_Params.alpha
-            argmax_term_temp = Task.P_s_sp_a + Task.R_s_a; % TODO: argmax_u(sum_sp'(P_s_sp_a*(R_s_a + alpha * V(sp))))
 
-            if argmax_term_temp > argmax_term
-                Policy = Controller.actionD2C(a);
+        % Naive implementation
+        for s = Task.S
+            b = Policy(s);
+            
+            max_term = -1E6;
+            for a = Task.A
+                term = Task.R_s_a(s,a) + Parameters.alpha * dot(Task.P_s_sp_a(s,:,a), V);
+                if term > max_term
+                    max_term = term;
+                    argmax_term = a;
+                end
+            end
+            
+            Policy(s) = Controller.actionD2C(argmax_term);
+            
+            delta_Policy(s) = norm(b - Policy(s));
+            if delta_Policy(s) > Parameters.minDelta_Policy
+                policyIsStable = false;
             end
         end
-
-        delta_Policy = norm(b - Policy);
-
-        fprintf('Iteration %d of PI.\tab Maximum change in Policy: %6.4f\n', PI_iter, delta_Policy);
         
-        %% Check algorithm convergence
-        if delta_Policy > GPI_Params.minDelta_Policy
-            policyIsStable = false;
-        end
+%         TODO: Replace naive implementation by matrix/vector operations
+%         Someting as follows:        
+%         term = Task.R_s_a(s,:) + Parameters.alpha * Task.P_s_sp_a(s,:,:) * V;
+        
+        %fprintf('Iteration %i of PI.\t Maximum change in Policy: %6.4f\n', PI_iter, delta_Policy);
         PI_iter = PI_iter + 1;
+
+        %% Check algorithm convergence
+        if policyIsStable
+            % Store optimal control policy and value function in controller
+            % and return
+            Controller.Policy = Policy;
+            Controller.V = V;
+            return;
+        end
     end
 end
-
-% Store optimal control policy and value function in controller
-Controller.Policy = Policy;
-Controller.V = V;
 
 end

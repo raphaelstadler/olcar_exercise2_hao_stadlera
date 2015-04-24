@@ -35,8 +35,8 @@ function [Task,Controller] = MDP_Design(Task,Parameters)
 % Allowed range of positions x: [-1.2, +0.5]
 % Allowed range of velocity  v: [-1, +1]
 x_min = -1.2; x_max = 0.5; v_min = -1; v_max = 1;
-delta_x = (x_max - x_min)/Parameters.pos_N;
-delta_v = (v_max - v_min)/Parameters.vel_N;
+delta_x = (x_max - x_min)/(Parameters.pos_N-1); % Note: For N bins, there are N-1 intervals
+delta_v = (v_max - v_min)/(Parameters.vel_N-1);
 
 [X1,X2] = meshgrid( x_min:delta_x:x_max,...
                     v_min:delta_v:v_max);
@@ -49,7 +49,7 @@ Task.S = 1:size(X,2);  % [1 x (pos_N*vel_N)] list of indices for each correspond
 % Allowed range of control   u: [-1, +1]
 % (Actuation via car acceleration a)
 u_min = -1; u_max = 1;
-delta_u = (u_max - u_min)/Parameters.u_N;
+delta_u = (u_max - u_min)/(Parameters.u_N-1);
 
 U = u_min:delta_u:u_max;    % [1 x u_N] array of all possible discretized actions
 
@@ -60,9 +60,6 @@ Task.A = 1:length(U);       % [1 x u_N] array of indices for each corresponding
 Task.P_s_sp_a = zeros(length(Task.S),length(Task.S),length(Task.A));    % [length(S) x length(S) x length(A)]
 Task.R_s_a    = zeros(length(Task.S),length(Task.A));                   % [length(S) x length(A)]
 
-
-% TODO: The discretization misses stochasticity (as it is described in the
-% problem description)
 
 %% Step 2: Generate the discrete state/action space MDP model 
 
@@ -94,14 +91,12 @@ for a = Task.A   % loop over the actions
             else
                 Task.R_s_a(s,a)    = Task.R_s_a(s,a) + r;
             end
-
-            if isTerminalState
-                return
-            end
         end
         
         % Normalize P_s_sp_a to come from counts to probabilities
         Task.P_s_sp_a = (1/Parameters.modeling_iter)*Task.P_s_sp_a;
+        % Calculate average reward
+        Task.R_s_a    = (1/Parameters.modeling_iter)*Task.R_s_a;
     end        
 end
 

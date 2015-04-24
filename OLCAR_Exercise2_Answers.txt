@@ -5,6 +5,8 @@ Exercise 2a: Mountain Car
 ---------------------------
 Question 1: Build a probabilistic model of the system. What is the stochastic element in the modeling process and what is its significance? What modeling parameters have the most effect on the quality of the solution?
 
+The probabilistic elemet comes from the fact that there are several modeling iterations (Parameters.modeling_iter). For each action and for each state, the value of the corresponding matrices P_s_sp_a and R_s_s_a are updated multiple times.
+
 
 
 ---------------------------
