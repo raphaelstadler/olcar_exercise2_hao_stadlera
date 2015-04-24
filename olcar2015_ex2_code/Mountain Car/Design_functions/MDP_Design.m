@@ -33,29 +33,28 @@ function [Task,Controller] = MDP_Design(Task,Parameters)
 %will also need to modify this function as well.
 
 % Allowed range of positions x: [-1.2, +0.5]
-% Allowed range of velocity v:  [-1, +1]
+% Allowed range of velocity  v: [-1, +1]
 x_min = -1.2; x_max = 0.5; v_min = -1; v_max = 1;
 delta_x = (x_max - x_min)/Parameters.pos_N;
 delta_v = (v_max - v_min)/Parameters.vel_N;
 
-X = zeros(2, Parameters.pos_N * Parameters.vel_N); % [2 x (pos_N*vel_N)] matrix of all possible discretized states
-for k=1:(Parameters.pos_N-1)
-    X(1,(k-1)*Parameters.vel_N:(k)*Parameters.vel_N) = x_min + (k-1)*delta_x;
-    X(2,(k-1)*Parameters.vel_N:(k)*Parameters.vel_N) = v_min:delta_v:v_max;
-end
+[X1,X2] = meshgrid( x_min:delta_x:x_max,...
+                    v_min:delta_v:v_max);
 
-Task.S = 1:(Parameters.pos_N * Parameters.vel_N);   % [1 x (pos_N*vel_N)] list of indices for each corresponding 
-                                                    % discretized state value
+X = [X1(:)'; X2(:)'];  % [2 x (pos_N*vel_N)] matrix of all possible discretized states
 
-% Allowed range of control u:   [-1, +1]
+Task.S = 1:size(X,2);  % [1 x (pos_N*vel_N)] list of indices for each corresponding 
+                       % discretized state value
+
+% Allowed range of control   u: [-1, +1]
 % (Actuation via car acceleration a)
 u_min = -1; u_max = 1;
 delta_u = (u_max - u_min)/Parameters.u_N;
 
-U = u_min:delta_u:u_max;                            % [1 x u_N] array of all possible discretized actions
+U = u_min:delta_u:u_max;    % [1 x u_N] array of all possible discretized actions
 
-Task.A = 1:Parameters.u_N;                          % [1 x u_N] array of indices for each corresponding 
-                                                    % discretized action
+Task.A = 1:length(U);       % [1 x u_N] array of indices for each corresponding 
+                            % discretized action
                       
 %Initialize the MDP model of the discretized system
 Task.P_s_sp_a = zeros(length(Task.S),length(Task.S),length(Task.A));    % [length(S) x length(S) x length(A)]
@@ -68,7 +67,7 @@ Task.R_s_a    = zeros(length(Task.S),length(Task.A));                   % [lengt
 %% Step 2: Generate the discrete state/action space MDP model 
 
 for a = Task.A   % loop over the actions
-    fprintf('Control action a = %6.4f \n', a);
+    fprintf('Discrete system model for action a = %6.4f \n', U(a));
     
     for s = Task.S  % loop over states
         
@@ -84,18 +83,25 @@ for a = Task.A   % loop over the actions
             [p1,v1,r,isTerminalState] = Mountain_Car_Single_Step(p0,v0,action);
 
             % Convert to index of successor state (p1, v1)
-            sp = state_c2D([p1 v1]);
+            sp = state_c2d([p1; v1]);
             
-            %Update the model with the iteration's simulation results
-            Task.P_s_sp_a(s,sp,action)  = Task.P_s_sp_a(s,sp,action) + 1;
-            Task.R_s_a(s,action)        = Task.R_s_a(s,action) + r;
+            % Update the model with the iteration's simulation results
+            % Count how many times sp is reached from s
+            Task.P_s_sp_a(s,sp,a)  = Task.P_s_sp_a(s,sp,a) + 1; 
             
-            % TODO: Verify what actually really should be done here (better
-            % understand the problem)
+            if isTerminalState
+                Task.R_s_a(s,a)    = 10;                    % Top of the hill reached
+            else
+                Task.R_s_a(s,a)    = Task.R_s_a(s,a) + r;
+            end
+
             if isTerminalState
                 return
             end
         end
+        
+        % Normalize P_s_sp_a to come from counts to probabilities
+        Task.P_s_sp_a = (1/Parameters.modeling_iter)*Task.P_s_sp_a;
     end        
 end
 
@@ -117,7 +123,7 @@ Controller.actionD2C = @(A) U(:,A);
     function Sp = state_c2d(Xp)
         % Finding the nearest discrete state bin
         [Sp,~] = knnsearch(X',Xp');
-        Sp =Sp';        
+        Sp = Sp';        
     end
 
 end
