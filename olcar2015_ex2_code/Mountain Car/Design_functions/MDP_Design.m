@@ -68,13 +68,14 @@ Task.R_s_a    = zeros(length(Task.S),length(Task.A));                   % [lengt
 %% Step 2: Generate the discrete state/action space MDP model 
 
 for a = Task.A   % loop over the actions
-
+    fprintf('Control action a = %6.4f \n', a);
+    
     for s = Task.S  % loop over states
         
         for i = 1:Parameters.modeling_iter % loop over modeling iterations
-            p0 = X(1,:);   % position
-            v0 = X(2,:);   % velocity
-            action = U;    % inputs
+            p0 = X(1,s);   % position
+            v0 = X(2,s);   % velocity
+            action = U(a); % inputs
 
             %Simulate for one time step. This function inputs and returns
             %states expressed by their physical continuous values. You may
@@ -82,9 +83,12 @@ for a = Task.A   % loop over the actions
             %this conversion.
             [p1,v1,r,isTerminalState] = Mountain_Car_Single_Step(p0,v0,action);
 
+            % Convert to index of successor state (p1, v1)
+            sp = state_c2D([p1 v1]);
+            
             %Update the model with the iteration's simulation results
-            Task.P_s_sp_a(p1,v1,action) = Task.P_s_sp_a(p1,v1,action) + 1;
-            Task.R_s_a(p0,action) = Task.R_s_a(p0,action) + r;
+            Task.P_s_sp_a(s,sp,action)  = Task.P_s_sp_a(s,sp,action) + 1;
+            Task.R_s_a(s,action)        = Task.R_s_a(s,action) + r;
             
             % TODO: Verify what actually really should be done here (better
             % understand the problem)
