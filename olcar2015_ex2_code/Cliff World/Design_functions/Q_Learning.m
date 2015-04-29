@@ -18,7 +18,11 @@ function Q = Q_Learning(S,A,stateS2X,stateX2S,Parameters)
 %
 
 %% Initialize Variables
+% Choose an arbitrary initial action value function
+Q = zeros(length(S),length(A));
 
+% Choose an arbitrary initial policy (index)
+pi_ind = ones(length(S));
 
 %Create object for incremental plotting of reward after each episode
 windowSize = 10; %Sets the width of the sliding window fitler used in plotting
@@ -26,34 +30,40 @@ plotter = RewardPlotter(windowSize);
 
 
 %% Q-Learning Algorthim (script section 2.9)
-
 for TrainLoop = 1:Parameters.training_iterations
     %% Generate a training episode
     
-    %while ... %Episode termination criteria
+    % Initialize x: The current state of the episode
+    % Each episode has to begin at the starting point
+    currState = stateX2S([4 1]);   
+    
+    episodicReward = 0;
+    episodeSize = 1;
+    while (episodeSize <= Parameters.episode_length) && ~isEpisodeEnd %Episode termination criteria
         % Execute the current epsilon-Greedy Policy
+        [~,u_star] = max(Q(currState,:));
+        action = choose_epsilon_greedy(A, u_star); % A:possible action indices, u_star: greedy action index   
         
-
         % Interaction with environment
         %Note that this function takes and returns states expressed by
         %their x,y grid positions. Use the state*2* functions if
         %necessary.
-        %[xp,reward,isEpisodeEnd] = Cliff_World(stateS2X(currState),action);
-        %nextState = stateX2S(xp);
-        
-        
-        % Log data for the episode
-        
+        [xp,reward,isEpisodeEnd] = Cliff_World(stateS2X(currState),action);
+        nextState = stateX2S(xp);
         
         %% Update Q(s,a)
+        Q(currState,action) = Q(currState,action) + Parameters.omega*(reward + Parameters.alpha*max(Q(nextState,:)) - Q(currState,action));
         
+        % Log data for the episode
+        episodicReward = episodicReward + reward;
+
+        currState = nextState;
+        episodeSize = episodeSize + 1;
         
-    %end
-    
-    
-    
+    end
+
     %Update the reward plot
-    %EpisodeTotalReturn = ... %Sum of the reward obtained during the episode
+    EpisodeTotalReturn = episodicReward; %Sum of the reward obtained during the episode
     plotter = UpdatePlot(plotter,EpisodeTotalReturn);
     
     
@@ -62,5 +72,7 @@ for TrainLoop = 1:Parameters.training_iterations
 	Parameters.epsilon = Parameters.epsilon * Parameters.k_epsilon; 
     
 end
-
+    function u_ind = choose_epsilon_greedy(A, greedy_ind)
+        % function
+    end
 end
