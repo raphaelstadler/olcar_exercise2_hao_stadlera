@@ -84,24 +84,23 @@ for TrainLoop = 1:Parameters.training_iterations
     
 end
 
-
-    function u_ind = choose_epsilon_greedy(A, greedy_ind)
+    function u_ind = choose_epsilon_greedy(ind_array, greedy_ind)
+        u_ind = -1;     % initialize action index with invalid number
+        unif = rand;    % uniformly distributed RV: [0..1]
         
-%         unif = rand; % uniformly distributed RV: [0..1]
-%         newU = -1;
-%         eps_u = Parameters.epsilon/length(A);
-%         greedyU = pi;
-%         nongreedyU = A(A~=greedyU);
-%         for u=1:length(nongreedyU)
-%             if (unif > (u-1)*eps_u) && (unif < u*eps_u)
-%                 newU =
-%             end
-%         end
-%         
-%         if unif <= Parameters.epsilon
-%             % greedy
-%         else
-%             % non-greedy
-%         end
+        l = length(ind_array);
+        
+        p_nonGreedy = Parameters.epsilon/l; % probability of non-greedy action
+        
+        nongreedy_ind_array = ind_array(ind_array~=greedyU);
+        for k=1:length(nongreedy_ind_array)
+            if (unif >= (k-1)*p_nonGreedy) && (unif < k*p_nonGreedy)
+                u_ind = k;  % non-greedy action is taken (with prob. p_nonGreedy)
+            end
+        end
+        
+        if u_ind == -1      % greedy action is taken (with prob p_Greedy = 1 - (l-1)*p_nonGreedy
+            u_ind = greedy_ind;
+        end
     end
 end
