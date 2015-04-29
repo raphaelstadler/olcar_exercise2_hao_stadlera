@@ -35,10 +35,11 @@ for TrainLoop = 1:Parameters.training_iterations
     
     % Initialize x: The current state of the episode
     % Each episode has to begin at the starting point
-    currState = stateX2S([4 1]);   
+    currState = stateX2S([4 1]');   
     
     episodicReward = 0;
     episodeSize = 1;
+    isEpisodeEnd = false;
     while (episodeSize <= Parameters.episode_length) && ~isEpisodeEnd %Episode termination criteria
         % Execute the current epsilon-Greedy Policy
         [~,u_star] = max(Q(currState,:));
@@ -61,7 +62,8 @@ for TrainLoop = 1:Parameters.training_iterations
         episodeSize = episodeSize + 1;
         
     end
-
+    fprintf('Iteration %i\t Episode length:\t %d\t epsilon = %6.4f\n', TrainLoop, (episodeSize-1), Parameters.epsilon);
+    
     %Update the reward plot
     EpisodeTotalReturn = episodicReward; %Sum of the reward obtained during the episode
     plotter = UpdatePlot(plotter,EpisodeTotalReturn);
@@ -80,7 +82,7 @@ end
         
         p_nonGreedy = Parameters.epsilon/l; % probability of non-greedy action
         
-        nongreedy_ind_array = ind_array(ind_array~=greedyU);
+        nongreedy_ind_array = ind_array(ind_array~=greedy_ind);
         for k=1:length(nongreedy_ind_array)
             if (unif >= (k-1)*p_nonGreedy) && (unif < k*p_nonGreedy)
                 u_ind = k;  % non-greedy action is taken (with prob. p_nonGreedy)

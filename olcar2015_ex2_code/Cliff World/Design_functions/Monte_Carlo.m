@@ -35,12 +35,13 @@ for TrainLoop = 1:Parameters.training_iterations
     
     % Initialize the current state of the episode
     % Each episode has to begin at the starting point
-    currState = stateX2S([4 1]);   
+    currState = stateX2S([4 1]');   
     
     %episodeStateList = zeros(Parameters.episode_length);
     %episodeActionList = zeros(Parameters.episode_length);
     episodicReward = 0;
     episodeSize = 1;
+    isEpisodeEnd = false;
     while (episodeSize <= Parameters.episode_length) && ~isEpisodeEnd %Episode termination criteria
         %episodeStateList(episodeSize) = currState;
         
@@ -65,6 +66,7 @@ for TrainLoop = 1:Parameters.training_iterations
         currState = nextState;
         episodeSize = episodeSize + 1;
     end
+    fprintf('Iteration %i\t Episode length:\t %d\t epsilon = %6.4f\n', TrainLoop, (episodeSize-1), Parameters.epsilon);
     
     %% Monte Carlo Policy Improvement Step (c)
     for s=S
@@ -92,7 +94,7 @@ end
         
         p_nonGreedy = Parameters.epsilon/l; % probability of non-greedy action
         
-        nongreedy_ind_array = ind_array(ind_array~=greedyU);
+        nongreedy_ind_array = ind_array(ind_array~=greedy_ind);
         for k=1:length(nongreedy_ind_array)
             if (unif >= (k-1)*p_nonGreedy) && (unif < k*p_nonGreedy)
                 u_ind = k;  % non-greedy action is taken (with prob. p_nonGreedy)
