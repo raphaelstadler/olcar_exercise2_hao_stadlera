@@ -26,8 +26,10 @@ Q = zeros(length(S),length(A));
 pi_ind = ones(length(S));
 
 %Create object for incremental plotting of reward after each episode
-windowSize = 10; %Sets the width of the sliding window fitler used in plotting
+windowSize = 10; %Sets the width of the sliding window filter used in plotting
 plotter = RewardPlotter(windowSize);
+
+isStatePartOfEpisode = zeros(length(S));
 
 %% On-Policy Monte Carlo Algorithm (see script section 2.9.3) - Algorithm 6, p.59
 for TrainLoop = 1:Parameters.training_iterations
@@ -37,18 +39,17 @@ for TrainLoop = 1:Parameters.training_iterations
     % Each episode has to begin at the starting point
     currState = stateX2S([4 1]');   
     
-    %episodeStateList = zeros(Parameters.episode_length);
-    %episodeActionList = zeros(Parameters.episode_length);
+    % Initialize indicator variable if a specific state is part of this episode
+    isStatePartOfEpisode(:) = 0;
+    
     episodicReward = 0;
     episodeSize = 1;
     isEpisodeEnd = false;
     while (episodeSize <= Parameters.episode_length) && ~isEpisodeEnd %Episode termination criteria
-        %episodeStateList(episodeSize) = currState;
+        isStatePartOfEpisode(currState) = 1;
         
         % Execute the current epsilon-Greedy Policy
         action = pi_ind(currState);
-        
-        %episodeActionList(episodeSize) = action;
         
         % Interaction with environment
         %Note that this function takes and returns states expressed by
@@ -57,19 +58,20 @@ for TrainLoop = 1:Parameters.training_iterations
         [xp,reward,isEpisodeEnd] = Cliff_World(stateS2X(currState),action);
         nextState = stateX2S(xp);
     
+        % Policy Evaluation (b)
+        Q(currState,action) = Q(currState,action) + Parameters.omega*(reward - Q(currState,action));       
+        
         % Log data for the episode
         episodicReward = episodicReward + reward;
-        
-        % Policy Evaluation (b)
-        Q(currState,action) = Q(currState,action) + Parameters.omega*(episodicReward - Q(currState,action));       
         
         currState = nextState;
         episodeSize = episodeSize + 1;
     end
-    fprintf('Iteration %i\t Episode length:\t %d\t epsilon = %6.4f\n', TrainLoop, (episodeSize-1), Parameters.epsilon);
+    fprintf('Iteration %i\t Episode length:\t %d\t epsilon = %6.6f\n', TrainLoop, (episodeSize-1), Parameters.epsilon);
     
     %% Monte Carlo Policy Improvement Step (c)
-    for s=S
+    % For each state of the episode
+    for s=S(isStatePartOfEpisode==1)
         [~,u_star] = max(Q(s,:));
         
         pi_ind(s) = choose_epsilon_greedy(A, u_star); % A:possible action indices, u_star: greedy action index   
@@ -82,8 +84,6 @@ for TrainLoop = 1:Parameters.training_iterations
     %% Decrease the exploration (d)
     %Set k_epsilon = 1 to maintain constant exploration
 	Parameters.epsilon = Parameters.epsilon * Parameters.k_epsilon;
-    
-    
 end
 
     function u_ind = choose_epsilon_greedy(ind_array, greedy_ind)

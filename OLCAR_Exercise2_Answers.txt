@@ -26,6 +26,9 @@ Exercise 2b: Cliff World
 ---------------------------
 Question 4: First implement the Monte Carlo algorithm. Test the algorithm using different values of epsilon. What impact does epsilon have on the solution? Can the algorithm find the optimal greedy policy?
 
+The value of epsilon characterizes how soft the policy is. With a non-zero probability (epsilon/|U|) a non-greedy policy - a policy which does not directly optimize the value function - is taken.
+small epsilon:	exploitation
+big epsilon:	exploration 
 
 
 ---------------------------
@@ -36,6 +39,8 @@ Question 5: Now implement the Q=Learning algorithm. First test the algorithm wit
 ---------------------------
 Question 6: Compare the computational efficiency and performance of the Monte Carlo and Q=Learning algorithms. What are the fundamental reasons why one algorithm performs better than the other?
 
+The off-policy Q-Learning performs much better than the on-policy Monte-Carlo algorithm.
+Sample-Based algorithm does not include model knowledge (exhaustive matrix calculations)
 
 
 ---------------------------

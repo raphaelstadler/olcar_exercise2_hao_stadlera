@@ -21,9 +21,6 @@ function Q = Q_Learning(S,A,stateS2X,stateX2S,Parameters)
 % Choose an arbitrary initial action value function
 Q = zeros(length(S),length(A));
 
-% Choose an arbitrary initial policy (index)
-pi_ind = ones(length(S));
-
 %Create object for incremental plotting of reward after each episode
 windowSize = 10; %Sets the width of the sliding window fitler used in plotting
 plotter = RewardPlotter(windowSize);
@@ -62,7 +59,7 @@ for TrainLoop = 1:Parameters.training_iterations
         episodeSize = episodeSize + 1;
         
     end
-    fprintf('Iteration %i\t Episode length:\t %d\t epsilon = %6.4f\n', TrainLoop, (episodeSize-1), Parameters.epsilon);
+    fprintf('Iteration %i\t Episode length:\t %d\t epsilon = %6.6f\n', TrainLoop, (episodeSize-1), Parameters.epsilon);
     
     %Update the reward plot
     EpisodeTotalReturn = episodicReward; %Sum of the reward obtained during the episode
