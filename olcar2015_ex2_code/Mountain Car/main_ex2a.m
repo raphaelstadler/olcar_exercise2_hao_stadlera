@@ -23,22 +23,28 @@ MDP_Params.modeling_iter = 50; %Number of modeling iterations for each
                                 %state & action
                                 %Set = 1 to build a deterministic model
 
-                                
+timer = tic;                                
 [Task,Controller] = MDP_Design(Task,MDP_Params);
-
-%To run the provided solution use:
 %[Task,Controller] = MDP_Design_Solution(Task,MDP_Params);
-
-
 %Optionally save the model so it doesn't have to be recomputed every time
 save('Discrete_Model.mat','Task','Controller');
+%save('Discrete_Model_Solution.mat','Task','Controller');
+toc(timer)
 
+% Simulations made on 2015/04/24:
+% Our Discretization:           Elapsed time is 332.632794 seconds.
+% Solution's Discretizatoin:    Elapsed time is 836.499078 seconds.
 
 %% Step 2: Generalized Policy Improvemnt
 
 %Optionally load a previously saved model for GPI testing
-load('Discrete_Model.mat');
-
+%load('Discrete_Model.mat');
+%load('Discrete_Model_Solution.mat');
+% size(Task.P_s_sp_a)
+% 
+% ans =
+% 
+%    400   400     5
 
 %Specify the parameters to be used for the GPI algorithm. These are the
 %parameters required to run the solution code, set with values that give a
@@ -51,10 +57,9 @@ GPI_Params.minDelta_Policy = 0.1; %Minimum change in the policy before terminati
 GPI_Params.alpha = 0.96; %Cost decay factor
 
 
-Controller = GPI_Design(Task,Controller,GPI_Params);
-
+%Controller = GPI_Design(Task,Controller,GPI_Params);
 %To run the provided solution use:
-%Controller = GPI_Design_Solution(Task,Controller,GPI_Params);
+Controller = GPI_Design_Solution(Task,Controller,GPI_Params);
 
 %% Run the simulation using the controller found and plot results
 
