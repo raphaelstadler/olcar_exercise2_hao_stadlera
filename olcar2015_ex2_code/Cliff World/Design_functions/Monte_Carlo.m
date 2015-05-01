@@ -97,7 +97,7 @@ end
         nongreedy_ind_array = ind_array(ind_array~=greedy_ind);
         for k=1:length(nongreedy_ind_array)
             if (unif >= (k-1)*p_nonGreedy) && (unif < k*p_nonGreedy)
-                u_ind = k;  % non-greedy action is taken (with prob. p_nonGreedy)
+                u_ind = nongreedy_ind_array(k);  % non-greedy action is taken (with prob. p_nonGreedy)
             end
         end
         
