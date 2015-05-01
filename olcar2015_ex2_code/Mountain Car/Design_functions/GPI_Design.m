@@ -38,8 +38,8 @@ while true
             sum_outer = 0; % summation over u
             for a = Task.A
                 sum_P_V = Parameters.alpha * dot(Task.P_s_sp_a(s,:,pi(s)),V(:));
-                %sum_outer = sum_outer + pi_x_u(s,a) * ( Task.R_s_a(s,a) + sum_P_V ); % TODO: Maybe: Task.R_s_a(s,pi(s)) ?
-                sum_outer = sum_outer + pi_x_u(s,a) * ( Task.R_s_a(s,pi(s)) + sum_P_V ); % TODO: Maybe: Task.R_s_a(s,pi(s)) ?
+                sum_outer = sum_outer + pi_x_u(s,a) * ( Task.R_s_a(s,a) + sum_P_V ); % TODO: Maybe: Task.R_s_a(s,pi(s)) ?
+                %sum_outer = sum_outer + pi_x_u(s,a) * ( Task.R_s_a(s,pi(s)) + sum_P_V ); % TODO: Maybe: Task.R_s_a(s,pi(s)) ?
             end % a
             V(s) = sum_outer;
             delta_V = max(delta_V, norm(v - V(s)));
