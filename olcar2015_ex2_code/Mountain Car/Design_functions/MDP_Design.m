@@ -33,21 +33,21 @@ function [Task,Controller] = MDP_Design(Task,Parameters)
 %will also need to modify this function as well.
 
 % Allowed range of positions x: [-1.2, +0.5]
-% Allowed range of velocity  v: [-1, +1]
-x_min = -1.2; x_max = 0.5; v_min = -1; v_max = 1;
-delta_x = (x_max - x_min)/(Parameters.pos_N-1); % Note: For N bins, there are N-1 intervals
-delta_v = (v_max - v_min)/(Parameters.vel_N-1);
+% Allowed range of velocity  v: [-0.07, +0.07]
+x_min = -1.2; x_max = 0.5; v_min = -0.07; v_max = 0.07;
+delta_x = (x_max - x_min)/(Parameters.pos_N); % Note: For N bins, there are N-1 intervals
+delta_v = (v_max - v_min)/(Parameters.vel_N);
 
 [X1,X2] = meshgrid( x_min:delta_x:(x_max-delta_x),...
                     v_min:delta_v:(v_max-delta_v));
 
-X1 = X1 + 0.5*delta_x;
-X2 = X2 + 0.5*delta_v;
+X1 = X1 + 0.5*delta_x;  % Shift the points by half the size of the interval:
+X2 = X2 + 0.5*delta_v;  % X1 and X2 like that collect the mid-points
 
-X = [X1(:)'; X2(:)'];  % [2 x (pos_N*vel_N)] matrix of all possible discretized states
+X = [X1(:)'; X2(:)'];   % [2 x (pos_N*vel_N)] matrix of all possible discretized states
 
-Task.S = 1:size(X,2);  % [1 x (pos_N*vel_N)] list of indices for each corresponding 
-                       % discretized state value
+Task.S = 1:size(X,2);   % [1 x (pos_N*vel_N)] list of indices for each corresponding 
+                        % discretized state value
 
 % Allowed range of control   u: [-1, +1]
 % (Actuation via car acceleration a)
@@ -63,25 +63,22 @@ Task.A = 1:length(U);       % [1 x u_N] array of indices for each corresponding
 Task.P_s_sp_a = zeros(length(Task.S),length(Task.S),length(Task.A));    % [length(S) x length(S) x length(A)]
 Task.R_s_a    = zeros(length(Task.S),length(Task.A));                   % [length(S) x length(A)]
 
-R_s_sp_a = zeros(length(Task.S), length(Task.S), length(Task.A));       % Needed afterwards to calculated R_s_a (via marginalization)
-
 %% Step 2: Generate the discrete state/action space MDP model 
-
 for a = Task.A   % loop over the actions
     fprintf('Discrete system model for action a = %6.4f \n', U(a));
     
     for s = Task.S  % loop over states
         
         for i = 1:Parameters.modeling_iter % loop over modeling iterations
-            p0 = X(1,s);   % position
-            v0 = X(2,s);   % velocity
+            p0 = X(1,s) + (i-1)*delta_x/(Parameters.modeling_iter) - 0.5*delta_x;   % position
+            v0 = X(2,s) + (i-1)*delta_v/(Parameters.modeling_iter) - 0.5*delta_v;   % velocity
             action = U(:,a); % inputs
 
             %Simulate for one time step. This function inputs and returns
             %states expressed by their physical continuous values. You may
             %want to use the included state_*2* functions provided to do
             %this conversion.
-            [p1,v1,r,isTerminalState] = Mountain_Car_Single_Step(p0,v0,action);
+            [p1,v1,r,isTerminalState] = Mountain_Car_Single_Step(p0,v0,action); % Note: isTerminalState is nowhere needed in this scope
 
             % Convert to index of successor state (p1, v1)
             sp = state_c2d([p1; v1]);
@@ -90,16 +87,7 @@ for a = Task.A   % loop over the actions
             % Count how many times sp is reached from s
             Task.P_s_sp_a(s,sp,a)  = Task.P_s_sp_a(s,sp,a) + 1;
             
-            if r ~= -1 % We reached the terminal state (isTerminalState)
-%                 fprintf('r different to -1, r is actually %2.2f !!!!\n', r);
-%                 fprintf('p0: %4.4f, v0: %4.4f,\n p1: %4.4f, v1: %4.4f,\naction: %4.4f\n', p0,v0,p1,v1,action);
-%                 fprintf('isTerminalState: %i\n\n', isTerminalState);
-                
-                R_s_sp_a(s,sp,a)    = R_s_sp_a(s,sp,a) + 10;                    % Top of the hill reached
-            else
-                R_s_sp_a(s,sp,a)    = R_s_sp_a(s,sp,a) + r;
-            end
-            
+            Task.R_s_a(s,a) = Task.R_s_a(s,a) + r;
         end % modeling_iter
     end        
 end
@@ -107,14 +95,7 @@ end
 % Normalize P_s_sp_a to come from counts to probabilities
 Task.P_s_sp_a = (1/Parameters.modeling_iter)*Task.P_s_sp_a;
 % Calculate average reward
-R_s_sp_a = (1/Parameters.modeling_iter)*R_s_sp_a;
-
-% Calculate R_s_a out of R_s_sp_a (using marginalization)
-for a = Task.A
-    for s = Task.S
-        Task.R_s_a(s,a) = dot(Task.P_s_sp_a(s,:,a), R_s_sp_a(s,:,a));    
-    end % s
-end % a
+Task.R_s_a = (1/Parameters.modeling_iter)*Task.R_s_a;
 
 %% Create the discrete space controller
 Controller = struct;
