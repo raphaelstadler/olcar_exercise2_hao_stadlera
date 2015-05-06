@@ -25,8 +25,8 @@ pi = 5*ones(length(Task.S),1);
 
 % Initialize the value function
 V = zeros(length(Task.S),1); % [length(Task.S) x 1]
-
-while true
+global_iter = 1;
+while global_iter<=3 %true
     %% Policy Evaluation (PE) (see script section 2.6)
     PE_iter = 1;
     while PE_iter <= Parameters.maxIter_PE
@@ -38,8 +38,7 @@ while true
             sum_outer = 0; % summation over u
             for a = Task.A
                 sum_P_V = Parameters.alpha * dot(Task.P_s_sp_a(s,:,pi(s)),V(:));
-                sum_outer = sum_outer + pi_x_u(s,a) * ( Task.R_s_a(s,a) + sum_P_V ); % TODO: Maybe: Task.R_s_a(s,pi(s)) ?
-                %sum_outer = sum_outer + pi_x_u(s,a) * ( Task.R_s_a(s,pi(s)) + sum_P_V ); % TODO: Maybe: Task.R_s_a(s,pi(s)) ?
+                sum_outer = sum_outer + pi_x_u(s,a) * ( Task.R_s_a(s,a) + sum_P_V );
             end % a
             V(s) = sum_outer;
             delta_V = max(delta_V, norm(v - V(s)));
@@ -98,9 +97,10 @@ while true
             end
             Controller.Policy = Policy;
             %Controller.V = V;
-            return;
+            %return;
         end
     end
+    global_iter = global_iter + 1;
 end
 
 end
