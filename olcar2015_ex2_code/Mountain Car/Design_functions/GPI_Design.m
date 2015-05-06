@@ -25,8 +25,8 @@ pi = 5*ones(length(Task.S),1);
 
 % Initialize the value function
 V = zeros(length(Task.S),1); % [length(Task.S) x 1]
-global_iter = 1;
-while global_iter<=3 %true
+
+while true
     %% Policy Evaluation (PE) (see script section 2.6)
     PE_iter = 1;
     while PE_iter <= Parameters.maxIter_PE
@@ -54,12 +54,10 @@ while global_iter<=3 %true
     
     %% Policy Improvment (PI) (see script section 2.7)
     PI_iter = 1;
+    
+    policyIsStable = true;
+    
     while (PI_iter <= Parameters.maxIter_PI)
-        policyIsStable = true;
-
-        % Initialize pi_x and calculate argmax_u(..)
-        % Policy update rule
-
         % Naive implementation
         for s = Task.S
             b = pi(s);
@@ -81,8 +79,6 @@ while global_iter<=3 %true
             end
         end
          
-        %fprintf('Iteration %i of PI.\t Maximum change in Policy: %6.4f\n', PI_iter, delta_Policy);
-        fprintf('Iteration %i of PI.\n',PI_iter);
         PI_iter = PI_iter + 1;
         
         %% Check algorithm convergence
@@ -96,11 +92,12 @@ while global_iter<=3 %true
                Policy(s,pi(s)) = 1; 
             end
             Controller.Policy = Policy;
-            %Controller.V = V;
-            %return;
+            Controller.V = V;
+            fprintf('Final Iteration of PI: %i.\n',PI_iter-1);
+            return;
         end
     end
-    global_iter = global_iter + 1;
+    fprintf('Final Iteration of PI: %i.\n',PI_iter-1);    
 end
 
 end
