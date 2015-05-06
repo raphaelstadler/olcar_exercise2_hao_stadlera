@@ -35,14 +35,11 @@ function [Task,Controller] = MDP_Design(Task,Parameters)
 % Allowed range of positions x: [-1.2, +0.5]
 % Allowed range of velocity  v: [-0.07, +0.07]
 x_min = -1.2; x_max = 0.5; v_min = -0.07; v_max = 0.07;
-delta_x = (x_max - x_min)/(Parameters.pos_N); % Note: For N bins, there are N-1 intervals
-delta_v = (v_max - v_min)/(Parameters.vel_N);
+delta_x = (x_max - x_min)/(Parameters.pos_N-1); % Note: For N bins, there are N-1 intervals
+delta_v = (v_max - v_min)/(Parameters.vel_N-1);
 
-[X1,X2] = meshgrid( x_min:delta_x:(x_max-delta_x),...
-                    v_min:delta_v:(v_max-delta_v));
-
-X1 = X1 + 0.5*delta_x;  % Shift the points by half the size of the interval:
-X2 = X2 + 0.5*delta_v;  % X1 and X2 like that collect the mid-points
+[X1,X2] = meshgrid( x_min:delta_x:x_max,...
+                    v_min:delta_v:v_max);
 
 X = [X1(:)'; X2(:)'];   % [2 x (pos_N*vel_N)] matrix of all possible discretized states
 
@@ -70,8 +67,12 @@ for a = Task.A   % loop over the actions
     for s = Task.S  % loop over states
         
         for i = 1:Parameters.modeling_iter % loop over modeling iterations
-            p0 = X(1,s) + (i-1)*delta_x/(Parameters.modeling_iter) - 0.5*delta_x;   % position
-            v0 = X(2,s) + (i-1)*delta_v/(Parameters.modeling_iter) - 0.5*delta_v;   % velocity
+            unifp = rand()*delta_x;
+            unifv = rand()*delta_v;
+            p0 = X(1,s) + unifp - 0.5*delta_x; % position
+            v0 = X(2,s) + unifv - 0.5*delta_v; % velocity
+%             p0 = X(1,s) + (i-1)*delta_x/(Parameters.modeling_iter) - 0.5*delta_x;   
+%             v0 = X(2,s) + (i-1)*delta_v/(Parameters.modeling_iter) - 0.5*delta_v;   
             action = U(:,a); % inputs
 
             %Simulate for one time step. This function inputs and returns
