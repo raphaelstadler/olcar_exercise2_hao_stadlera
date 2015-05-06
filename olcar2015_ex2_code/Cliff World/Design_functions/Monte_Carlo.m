@@ -49,7 +49,7 @@ for TrainLoop = 1:Parameters.training_iterations
     episodicReward = 0;
     episodeSize = 1;
     isEpisodeEnd = false;
-    counter = 0;
+    cliffOrEndCounter = 0;
     while (episodeSize <= Parameters.episode_length) && ~isEpisodeEnd %Episode termination criteria    
         % Execute the current epsilon-Greedy Policy
         %action = pi_ind(currState); % A:possible action indices, pi_ind(currState): greedy action index   
@@ -66,6 +66,9 @@ for TrainLoop = 1:Parameters.training_iterations
         nextState = stateX2S(xp);
         
         % Log data for the episode
+        if reward ~= -1
+            cliffOrEndCounter = cliffOrEndCounter+1;
+        end
         for iter=1:episodeSize
             s_index = StateActionLog(1,iter);
             a_index = StateActionLog(2,iter);
@@ -73,20 +76,12 @@ for TrainLoop = 1:Parameters.training_iterations
             Returns(s_index,a_index) = Returns(s_index,a_index) + reward;
         end
         
-        if reward ~= -1
-            %fprintf('reward: %d\n',reward);
-            counter = counter+1;
-        end
-        if isEpisodeEnd
-            fprintf('EpisodeEnd\n');
-        end
         episodicReward = episodicReward + reward;
         
         currState = nextState;
         episodeSize = episodeSize + 1;
     end
-    fprintf('%d times reward other than -1\n',counter);
-    fprintf('Iteration %i\t Episode length:\t %d\t epsilon = %6.6f\t episodicReward = %6.6f\n', TrainLoop, (episodeSize-1), Parameters.epsilon, episodicReward);
+    fprintf('Iteration %i  \t Episode length:\t %d\t epsilon = %6.1f\t Reward = %d\t #(cliff|end):%d\n', TrainLoop, (episodeSize-1), Parameters.epsilon, episodicReward, cliffOrEndCounter);
     
     IndexMatrix = isStateActionPartOfEpisode==1;
     
