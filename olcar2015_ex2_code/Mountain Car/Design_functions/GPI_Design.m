@@ -21,7 +21,7 @@ pi_x_u = ones(length(Task.S), length(Task.A)); %[length(Task.S) x length(Task.A)
 pi_x_u = (1/size(pi_x_u,2))*pi_x_u;
 
 % Initially, always use action 1
-pi = 5*ones(length(Task.S),1);
+pi = ones(length(Task.S),1);
 
 % Initialize the value function
 V = zeros(length(Task.S),1); % [length(Task.S) x 1]
