@@ -70,9 +70,7 @@ for a = Task.A   % loop over the actions
             unifp = rand()*delta_x;
             unifv = rand()*delta_v;
             p0 = X(1,s) + unifp - 0.5*delta_x; % position
-            v0 = X(2,s) + unifv - 0.5*delta_v; % velocity
-%             p0 = X(1,s) + (i-1)*delta_x/(Parameters.modeling_iter) - 0.5*delta_x;   
-%             v0 = X(2,s) + (i-1)*delta_v/(Parameters.modeling_iter) - 0.5*delta_v;   
+            v0 = X(2,s) + unifv - 0.5*delta_v; % velocity  
             action = U(:,a); % inputs
 
             %Simulate for one time step. This function inputs and returns
