@@ -49,7 +49,7 @@ for TrainLoop = 1:Parameters.training_iterations
         isStatePartOfEpisode(currState) = 1;
         
         % Execute the current epsilon-Greedy Policy
-        action = choose_epsilon_greedy(A, pi_ind(currState)); % A:possible action indices, pi_ind(currState): greedy action index   
+        action = pi_ind(currState); % A:possible action indices, pi_ind(currState): greedy action index   
         
         % Interaction with environment
         %Note that this function takes and returns states expressed by
